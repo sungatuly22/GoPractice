@@ -11,11 +11,13 @@ import (
 )
 
 type flags struct {
-	isJustify bool
-	align     string
-	font      string
-	banner    map[rune][]string
-	charSize  map[rune]int
+	isJustify     bool
+	align         string
+	font          string
+	banner        map[rune][]string
+	charSize      map[rune]int
+	lastStr       []string
+	terminalWidth int
 }
 
 func main() {
@@ -25,10 +27,17 @@ func main() {
 		fmt.Println(errStr)
 		return
 	}
-	f := flags{isJustify: false, banner: make(map[rune][]string, 8)}
-	f.align = args[2][8:]
-	f.font = args[1]
+	term, err := TerminalWidth()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	f := flags{isJustify: false, banner: make(map[rune][]string, 8), align: args[2][8:], font: args[1], charSize: make(map[rune]int), terminalWidth: term}
 	f.readFont()
+	args[0] = strings.Replace(args[0], "\\r\\n", "\\n", -1)
+	args[0] = strings.Replace(args[0], "\\n\\n", "\\n", -1)
+	f.lastStr = strings.Split(args[0], "\\n")
+	f.printResult()
 }
 
 func (f *flags) readFont() { // reading the given font and build a banner that we need
@@ -72,4 +81,16 @@ func TerminalWidth() (int, error) {
 	cmd.Stdin = os.Stdout
 	out, _ := cmd.Output()
 	return strconv.Atoi(string(out[3 : len(out)-1]))
+}
+
+func (f *flags) printResult() {
+	for _, st := range f.lastStr {
+		//wordsize := 0
+		for i := 0; i < 8; i++ {
+			for _, ch := range st {
+				fmt.Print(f.banner[rune(ch)][i])
+			}
+			fmt.Println()
+		}
+	}
 }
